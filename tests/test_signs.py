@@ -1,5 +1,4 @@
-"""Tests for signs.py (role B). Fixed seeds; ground truth from common.py."""
-
+# Tests for signs.py (role B). Fixed seeds; ground truth from common.py.
 import numpy as np
 
 from bmetrics import scrambled_layer1
@@ -12,7 +11,7 @@ def _all_signs_right(p, A1):
 
 
 def test_preimage_method_100_networks():
-    """100 u01 networks x 10 rows, random positive scaling and sign flips."""
+    # 100 u01 networks x 10 rows, random positive scaling and sign flips.
     for seed in range(100):
         rng = np.random.default_rng(seed)
         p = random_network(rng)

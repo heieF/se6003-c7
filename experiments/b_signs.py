@@ -1,10 +1,6 @@
-"""Table B1: pre-image sign recovery [14, Sec. 4.2] vs. our least-squares test.
-
-Input: the true first layer with random positive row scaling, random sign
-flips and optional relative noise on every entry.
-Output: results/b_signs.csv, tables/B/b_signs.tex
-"""
-
+# Table B1: pre-image sign recovery [14, Sec. 4.2] vs. our least-squares test. Input: the true
+# first layer with random positive row scaling, random sign flips and optional relative noise on
+# every entry. -> results/b_signs.csv, tables/B/b_signs.tex
 import csv
 
 import _path

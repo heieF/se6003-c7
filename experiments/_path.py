@@ -1,5 +1,4 @@
-"""Make the repository root importable when running experiments/*.py directly."""
-
+# Make the repository root importable when running experiments/*.py directly.
 import os
 import sys
 

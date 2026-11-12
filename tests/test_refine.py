@@ -1,5 +1,4 @@
-"""Tests for refine.py (role B, bonus)."""
-
+# Tests for refine.py (role B, bonus).
 import numpy as np
 
 from bmetrics import layer1_error, unit_rows

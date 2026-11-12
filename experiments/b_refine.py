@@ -1,9 +1,5 @@
-"""Fig. B2: precision refinement [14, Sec. 5.1] of a noisy first layer.
-
-Input: the true first layer (unit rows) plus i.i.d. Gaussian noise.
-Output: results/b_refine.csv, figures/B/b_refine.pdf
-"""
-
+# Fig. B2: precision refinement [14, Sec. 5.1] of a noisy first layer. Input: the true first
+# layer (unit rows) plus i.i.d. Gaussian noise. -> results/b_refine.csv, figures/B/b_refine.pdf
 import csv
 
 import _path

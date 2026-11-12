@@ -1,9 +1,6 @@
-"""Fig. B1: first-layer row error vs. finite-difference step size.
-
-Uses exact witnesses (true_witness) so that only layer1.py is exercised.
-Output: results/b_rows.csv, figures/B/b_rows.pdf
-"""
-
+# Fig. B1: first-layer row error vs. finite-difference step size. Uses exact witnesses
+# (true_witness) so that only layer1.py is exercised. -> results/b_rows.csv,
+# figures/B/b_rows.pdf
 import csv
 
 import _path
@@ -26,8 +23,8 @@ def row_err(p, j, r):
 
 
 def search_like_witness(p, j, rng):
-    """Witness with a uniformly random search direction, as a line search
-    returns it (radius = distance to the next kink along v, capped at 1)."""
+    # Witness with a uniformly random search direction, as a line search returns it (radius =
+    # distance to the next kink along v, capped at 1).
     a = p.A1[j]
     x0 = rng.normal(size=p.d0)
     x = x0 - (a @ x0 + p.b1[j]) / (a @ a) * a
@@ -39,7 +36,7 @@ def search_like_witness(p, j, rng):
 
 
 def line_check(n_nets=300):
-    """Random search directions: plain differencing vs. our consistency check."""
+    # Random search directions: plain differencing vs. our consistency check.
     rng = np.random.default_rng(SEED + 1)
     plain_bad = ours_bad = retried = total = queries = 0
     for _ in range(n_nets):
@@ -108,7 +105,7 @@ def main():
 
 
 def method_compare(n_nets=100):
-    """Our differencing (Alg. 2) vs. the coordinate method of [14, Sec. 5.2]."""
+    # Our differencing (Alg. 2) vs. the coordinate method of [14, Sec. 5.2].
     rng = np.random.default_rng(SEED + 2)
     methods = {"ours": row_from_witness, "sec52": row_from_witness_coord}
     res = {(m, k): ([], []) for m in methods for k in ("exact", "search")}

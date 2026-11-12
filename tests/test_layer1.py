@@ -1,5 +1,4 @@
-"""Tests for layer1.py (role B). Fixed seeds; ground truth from common.py."""
-
+# Tests for layer1.py (role B). Fixed seeds; ground truth from common.py.
 import numpy as np
 
 from common import Oracle, Witness, random_network, true_witness
@@ -7,7 +6,7 @@ from layer1 import merge_neurons, row_from_witness, row_from_witness_coord
 
 
 def test_rows_from_true_witnesses():
-    """All neurons of 100 u01 networks: |cos(row, A1_j)| >= 1 - 1e-10."""
+    # All neurons of 100 u01 networks: |cos(row, A1_j)| >= 1 - 1e-10.
     for seed in range(100):
         rng = np.random.default_rng(seed)
         p = random_network(rng)
@@ -24,7 +23,7 @@ def test_rows_from_true_witnesses():
 
 
 def test_coordinate_method_sec52():
-    """Bonus method of [14, Sec. 5.2]: magnitudes plus column signs."""
+    # Bonus method of [14, Sec. 5.2]: magnitudes plus column signs.
     for seed in range(50):
         rng = np.random.default_rng(seed)
         p = random_network(rng, weights="uniform_pm1")  # mixed signs in each row
@@ -38,8 +37,8 @@ def test_coordinate_method_sec52():
 
 
 def _search_like_witness(p, j, rng, max_angle=None):
-    """Witness as a line search returns it: random direction v (possibly
-    almost parallel to the hyperplane), radius = distance to the next kink."""
+    # Witness as a line search returns it: random direction v (possibly almost parallel to the
+    # hyperplane), radius = distance to the next kink.
     a = p.A1[j]
     x0 = rng.normal(size=p.d0)
     x = x0 - (a @ x0 + p.b1[j]) / (a @ a) * a
@@ -55,8 +54,8 @@ def _search_like_witness(p, j, rng, max_angle=None):
 
 
 def test_rows_from_nearly_parallel_lines():
-    """Search lines almost parallel to the hyperplane (|cos| <= 1e-3): the
-    consistency check must detect probes crossing the hyperplane."""
+    # Search lines almost parallel to the hyperplane (|cos| <= 1e-3): the consistency check must
+    # detect probes crossing the hyperplane.
     for seed in range(100):
         rng = np.random.default_rng(seed)
         p = random_network(rng)

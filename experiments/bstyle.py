@@ -1,5 +1,4 @@
-"""Shared matplotlib style for role B's figures (vector PDF, >= 8pt text)."""
-
+# Shared matplotlib style for role B's figures (vector PDF, >= 8pt text).
 import matplotlib
 
 matplotlib.use("Agg")
