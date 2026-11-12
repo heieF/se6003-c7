@@ -11,7 +11,7 @@ import numpy as np
 from bstyle import BLUE, GRAY, ORANGE, plt
 
 from common import Oracle, Witness, random_network, true_witness
-from layer1 import DELTA_FRAC, row_from_witness, row_with_steps
+from layer1 import DELTA_FRAC, row_from_witness, row_from_witness_coord, row_with_steps
 
 N_NETS, SEED = 50, 2026
 EPS = np.logspace(-10, -2, 17)
@@ -107,6 +107,68 @@ def main():
     print(open(f"{_path.ROOT}/results/b_rows.csv").read())
 
 
+def method_compare(n_nets=100):
+    """Our differencing (Alg. 2) vs. the coordinate method of [14, Sec. 5.2]."""
+    rng = np.random.default_rng(SEED + 2)
+    methods = {"ours": row_from_witness, "sec52": row_from_witness_coord}
+    res = {(m, k): ([], []) for m in methods for k in ("exact", "search")}
+    for _ in range(n_nets):
+        p = random_network(rng)
+        oracle = Oracle(p)
+        for j in range(p.d1):
+            for kind, w in (
+                ("exact", true_witness(p, j, rng)),
+                ("search", search_like_witness(p, j, rng)),
+            ):
+                for m, fn in methods.items():
+                    q0 = oracle.queries
+                    err = row_err(p, j, fn(oracle, w))
+                    res[m, kind][0].append(err)
+                    res[m, kind][1].append(oracle.queries - q0)
+    rows = []
+    for (m, kind), (e, q) in res.items():
+        e = np.array(e)
+        rows.append(
+            [
+                m,
+                kind,
+                f"{np.mean(q):.1f}",
+                f"{np.median(e):.2e}",
+                f"{np.max(e):.2e}",
+                int(np.sum(e > 1e-5)),
+                len(e),
+            ]
+        )
+    with open(f"{_path.ROOT}/results/b_rows_methods.csv", "w", newline="") as fh:
+        wr = csv.writer(fh)
+        wr.writerow(["method", "witnesses", "mean_queries", "median_err", "max_err", "wrong", "n"])
+        wr.writerows(rows)
+    name = {
+        "ours": "ours (Alg.~\\ref{alg:B-row})",
+        "sec52": "coordinate~\\cite[\\S5.2]{DBLP:conf/crypto/CarliniJM20}",
+    }
+
+    def tex(v):
+        m, e = f"{float(v):.1e}".split("e")
+        return f"${m}\\times10^{{{int(e)}}}$"
+
+    lines = [
+        "\\begin{tabular}{llrrrr}",
+        "\\toprule",
+        "method & witnesses & queries & median err. & max err. & wrong\\\\",
+        "\\midrule",
+    ]
+    for r in rows:
+        lines.append(
+            f"{name[r[0]]} & {r[1]} & {r[2]} & {tex(r[3])} & {tex(r[4])} & {r[5]}/{r[6]}\\\\"
+        )
+    lines += ["\\bottomrule", "\\end{tabular}"]
+    with open(f"{_path.ROOT}/tables/B/b_rows_methods.tex", "w") as fh:
+        fh.write("\n".join(lines) + "\n")
+    print(open(f"{_path.ROOT}/results/b_rows_methods.csv").read())
+
+
 if __name__ == "__main__":
     main()
     line_check()
+    method_compare()

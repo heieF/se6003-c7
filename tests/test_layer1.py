@@ -3,7 +3,7 @@
 import numpy as np
 
 from common import Oracle, Witness, random_network, true_witness
-from layer1 import merge_neurons, row_from_witness
+from layer1 import merge_neurons, row_from_witness, row_from_witness_coord
 
 
 def test_rows_from_true_witnesses():
@@ -21,6 +21,20 @@ def test_rows_from_true_witnesses():
             cos = row @ a
             assert abs(cos) >= 1 - 1e-10
             assert abs(np.sign(cos) * bias - p.b1[j] / np.linalg.norm(p.A1[j])) < 1e-6
+
+
+def test_coordinate_method_sec52():
+    """Bonus method of [14, Sec. 5.2]: magnitudes plus column signs."""
+    for seed in range(50):
+        rng = np.random.default_rng(seed)
+        p = random_network(rng, weights="uniform_pm1")  # mixed signs in each row
+        oracle = Oracle(p)
+        for j in range(p.d1):
+            q0 = oracle.queries
+            row, _ = row_from_witness_coord(oracle, true_witness(p, j, rng))
+            assert oracle.queries - q0 == 1 + 2 * p.d0 + 2 * (p.d0 - 1)
+            a = p.A1[j] / np.linalg.norm(p.A1[j])
+            assert abs(row @ a) >= 1 - 1e-10
 
 
 def _search_like_witness(p, j, rng, max_angle=None):

@@ -21,6 +21,8 @@ SAFETY = 0.1
 MAX_RETRIES = 3
 # Allowed |J.v - s_v| relative to |J| (rounding is ~1e-8 at worst).
 CONSIST_TOL = 1e-5
+# Step of the Sec. 5.2 coordinate method, relative to the witness radius.
+COORD_FRAC = 0.01
 
 
 def gradients(
@@ -94,6 +96,39 @@ def row_with_steps(
         return None
     row = jump / norm
     return row, float(-row @ w.x)
+
+
+def row_from_witness_coord(
+    oracle: Oracle, w: Witness, step_frac: float = COORD_FRAC
+) -> tuple[np.ndarray, float] | None:
+    """Alternative row recovery of [14, Sec. 5.2] (bonus, for comparison).
+
+    Steps from the witness itself along +/- e_i and differentiates along the
+    same axis: the slope jump of t -> f(x + t e_i) at t = 0 is
+    |A2_j| * |A1_ji| up to one common sign, so only magnitudes are learned
+    (1 + 2 d0 queries). Column signs relative to a reference coordinate r
+    (the largest entry) come from the jump along e_r + e_k, which is
+    |a_r| + |a_k| for equal signs and ||a_r| - |a_k|| otherwise
+    (2 (d0 - 1) queries). Total 1 + 2 d0 + 2 (d0 - 1) = 39 queries for d0 = 10.
+    """
+    x, d0 = w.x, len(w.x)
+    eps = step_frac * w.radius
+    E = np.eye(d0)
+    y = np.asarray(oracle(np.vstack([x[None], x + eps * E, x - eps * E])))
+    f0, fp, fm = y[0], y[1 : d0 + 1], y[d0 + 1 :]
+    mag = ((fp - f0) - (f0 - fm)) / eps  # = c |a_i| with one unknown c != 0
+    if not np.all(np.isfinite(mag)) or np.max(np.abs(mag)) == 0.0:
+        return None
+    r = int(np.argmax(np.abs(mag)))
+    others = [k for k in range(d0) if k != r]
+    U = E[r] + E[others]  # directions e_r + e_k
+    y2 = np.asarray(oracle(np.vstack([x + eps * U, x - eps * U])))
+    pair = ((y2[: d0 - 1] - f0) - (f0 - y2[d0 - 1 :])) / eps
+    same = np.abs(pair - (mag[r] + mag[others])) <= np.abs(pair - (mag[r] - mag[others]))
+    row = mag.copy()
+    row[others] = np.where(same, mag[others], -mag[others])
+    row /= np.linalg.norm(row)
+    return row, float(-row @ x)
 
 
 def _cluster(rows: np.ndarray, thr: float) -> list[list[int]]:

@@ -27,6 +27,13 @@ $-\hat a\cdot\bar x'$. We then drop points whose residual exceeds ten times
 the median and refit once. A refined row is accepted only if it moved by less
 than $10^{-4}$; otherwise the old row is kept, as
 in~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20}.
+Our version differs from~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20} in two
+ways. First, instead of tuning the segment length so that roughly half of
+the attempts fail, we bound it by the estimated distance to the other
+hyperplanes and reject a point when the two mid-point checks fail. Second,
+instead of the robust estimator used there, we use one
+round of residual-based outlier removal, which suffices because the
+mid-point checks already filter most bad points.
 
 To test the refinement on its own, we add i.i.d.\ Gaussian noise of standard
 deviation $10^{-8}$ to the true, normalised first layer

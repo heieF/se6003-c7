@@ -1,0 +1,5 @@
+method,witnesses,mean_queries,median_err,max_err,wrong,n
+ours,exact,23.0,6.07e-12,4.53e-08,0,1000
+ours,search,23.3,2.24e-12,6.65e-09,0,1000
+sec52,exact,39.0,7.64e-13,4.38e-09,0,1000
+sec52,search,39.0,2.44e-13,8.39e-02,1,1000
