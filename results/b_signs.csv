@@ -1,0 +1,10 @@
+weights,noise,pre_ok,pre_queries,ls_ok,ls_queries,ls_med_func_err
+uniform01,0e+00,100,30,100,60,2.27e-13
+uniform01,1e-08,100,30,100,60,4.35e-07
+uniform01,1e-04,98,30,98,60,4.68e-03
+uniform_pm1,0e+00,100,30,100,60,1.62e-13
+uniform_pm1,1e-08,100,30,100,60,6.36e-07
+uniform_pm1,1e-04,100,30,100,60,6.45e-03
+normal,0e+00,100,30,100,60,4.83e-13
+normal,1e-08,100,30,100,60,1.86e-06
+normal,1e-04,99,30,98,60,1.84e-02

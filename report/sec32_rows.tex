@@ -1,0 +1,106 @@
+% Section 3.2 -- Recovering First-Layer Rows (role B)
+\subsection{Recovering First-Layer Rows}
+\label{sec:B-rows}
+
+Given a witness $x\in\wit{j}$ from Sect.~\ref{sec:A-critical}, we recover the
+$j$-th row of $\Aone$ up to a scalar, following the differential idea
+of~\cite[\S4.2]{DBLP:conf/crypto/CarliniJM20}. Inside a region where the
+activation pattern is fixed, $f$ is affine with
+$\nabla f(x)=\sum_{k}\Atwo_k\,\mathbb{1}[\pre{k}{x}>0]\,(\Aone_k)^{\top}$, so a
+change of gradient across a critical hyperplane isolates a single neuron.
+
+\begin{proposition}[gradient jump]\label{prop:B-jump}
+Let $x\in\wit{j}$, let $v$ be a unit vector with $\Aone_j v\neq0$, and let
+$\delta>0$ be such that no other neuron changes sign on the segment
+$\{x+tv: |t|\le\delta\}$. Then
+\begin{equation}\label{eq:B-jump}
+  \nabla f(x+\delta v)-\nabla f(x-\delta v)
+  =\operatorname{sign}(\Aone_j v)\,\Atwo_j\,(\Aone_j)^{\top}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For $k\neq j$ the indicator $\mathbb{1}[\pre{k}{\cdot}>0]$ takes the same value
+at $x\pm\delta v$, so these terms cancel in the difference. For neuron $j$,
+$\pre{j}{x\pm\delta v}=\pm\delta\,\Aone_j v$, hence $\eta_j$ is active at
+exactly one of the two points: at $x+\delta v$ if $\Aone_j v>0$ and at
+$x-\delta v$ otherwise. Only its term $\Atwo_j(\Aone_j)^{\top}$ survives, with
+the sign of $\Aone_j v$.\qed
+\end{proof}
+
+Proposition~\ref{prop:B-jump} gives the direction of $\Aone_j$ but neither its
+length nor its sign, since $\operatorname{sign}(\Aone_j v)\Atwo_j$ is unknown.
+The length is irrelevant by Proposition~\ref{prop:A-symmetry}; the sign is
+recovered in Sect.~\ref{sec:B-signs}. Because the witness lies on the
+hyperplane, the bias of the normalised row $\hat a=\Aone_j/\|\Aone_j\|$ is
+$\hat b=-\hat a\cdot x$.
+
+\paragraph{Algorithm.}
+Algorithm~\ref{alg:B-row} turns Proposition~\ref{prop:B-jump} into queries.
+Gradients are estimated by forward differences along the $\dzero$ coordinate
+axes, so each of the two points costs $\dzero+1$ queries and a witness costs
+$2(\dzero+1)=22$ queries, sent as one batch. Unlike~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20},
+we difference at points that are already on either side of the hyperplane,
+which keeps the relative signs of the entries of the row and removes the need
+for a separate column-sign step.
+
+\begin{algorithm}[t]
+\caption{\texttt{row\_from\_witness}: one row of $\Aone$ (up to sign) from a witness.}
+\label{alg:B-row}
+\KwIn{oracle $\oracle$, witness $(x,v,r)$ with no other critical point within $\pm r$ along $v$}
+\KwOut{unit row $\hat a$ and bias $\hat b$, or \texttt{None}}
+$\delta\gets 0.1\,r$;\quad $\varepsilon\gets 0.01\,\delta$\;
+\For{$s\in\{+1,-1\}$}{
+  $p_s\gets x+s\,\delta v$\;
+  $g_s\gets\bigl(\oracle(p_s+\varepsilon e_i)-\oracle(p_s)\bigr)_{i=1}^{\dzero}/\varepsilon$
+  \tcp*{$\dzero+1$ queries}
+}
+$J\gets g_{+1}-g_{-1}$\;
+\lIf{$J=0$}{\Return \texttt{None}\tcp*[f]{$\Atwo_j=0$: neuron invisible}}
+$\hat a\gets J/\|J\|$;\quad \Return $(\hat a,\,-\hat a\cdot x)$\;
+\end{algorithm}
+
+\paragraph{Choosing the step size.}
+Two errors compete. If $\varepsilon$ is too small, rounding dominates: each
+partial derivative carries an absolute error of about $u|f|/\varepsilon$
+($u=2^{-53}$), which relative to the size of the jump $|\Atwo_j|\,\|\Aone_j\|$
+gives a row error of order $u|f|/(\varepsilon|\Atwo_j|\|\Aone_j\|)$. If
+$\varepsilon$ is too large, a probe $p_s+\varepsilon e_i$ crosses another
+critical hyperplane and the estimate is wrong by $\Theta(1)$.
+Fig.~\ref{fig:B-rows} measures both effects on exact witnesses
+(\texttt{true\_witness}) for 500 neurons of 50 networks. With a fixed
+$\varepsilon$ the median error falls like $1/\varepsilon$, from
+$6.0\times10^{-6}$ at $\varepsilon=10^{-10}$ to $7.2\times10^{-13}$ at
+$10^{-3}$, but from $\varepsilon\approx3\times10^{-6}$ on the worst neuron is
+wrong by more than $0.1$: no fixed step suits every witness. We therefore tie
+the step to the witness radius, $\varepsilon=10^{-3}r$, which never crossed a
+hyperplane (median error $7.5\times10^{-12}$, maximum $1.3\times10^{-8}$). The
+remaining large errors come from neurons with a small radius or a small
+$|\Atwo_j|$, exactly as the estimate above predicts; Sect.~\ref{sec:B-refine}
+removes them. On the test criterion, all $1000$ neurons of $100$ networks
+satisfy $|\cos(\hat a,\Aone_j)|\ge1-10^{-10}$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.75\linewidth]{figures/B/b_rows.pdf}
+\caption{Row error after sign alignment versus the finite-difference step,
+on 500 exact witnesses. Lines: fixed absolute $\varepsilon$; dotted: our
+relative choice $\varepsilon=10^{-3}r$.}
+\label{fig:B-rows}
+\end{figure}
+
+\paragraph{Merging candidates.}
+The search returns several witnesses per neuron, in unknown order. We treat
+two candidate rows as the same neuron when $|\cos(\hat a,\hat a')|>1-10^{-6}$
+(rows of different neurons in our setting are far less aligned). Within a
+group we flip all members to the sign of the first, average and re-normalise
+the rows, and take the \emph{median} of the aligned biases, which tolerates a
+single bad witness. If fewer than $\done$ groups exist, \texttt{merge\_neurons}
+returns \texttt{None} and the attack searches another line. If there are more
+than $\done$, the extra groups are spurious rows (e.g.\ two close kinks
+mistaken for one), and we keep the $\done$ most frequent groups; an optional
+\texttt{min\_count}$=2$ discards groups seen only once, as suggested for
+signed weights. Ties between the $\done$-th and $(\done+1)$-th group also
+return \texttt{None}. This mirrors the duplicate-based filtering
+of~\cite[\S4.3.1]{DBLP:conf/crypto/CarliniJM20}, simplified because a one-deep
+network has no deeper-layer critical points.

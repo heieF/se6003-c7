@@ -1,0 +1,8 @@
+weights,noise,method,cond_A1,median_cond_all_nets
+uniform01,1e-04,pre-image,1.74e+03,90.7
+uniform01,1e-04,lstsq,1.74e+03,90.7
+uniform01,1e-04,pre-image,833,90.7
+uniform01,1e-04,lstsq,833,90.7
+normal,1e-04,lstsq,1.39e+03,30.5
+normal,1e-04,pre-image,479,30.5
+normal,1e-04,lstsq,479,30.5
