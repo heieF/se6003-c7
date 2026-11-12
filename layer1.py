@@ -27,6 +27,8 @@ def gradients(oracle, pts, eps, extra=None):
 
 
 def row_from_witness(oracle: Oracle, w: Witness) -> tuple[np.ndarray, float] | None:
+    if w.radius <= 0:  # two kinks at the same spot on A's line, nothing to difference
+        return None
     v, delta = w.direction, DELTA_FRAC * w.radius
     eps = EPS_FRAC * delta
     pts = np.stack([w.x + delta * v, w.x - delta * v])

@@ -1,14 +1,18 @@
 # Fig. B2: precision refinement [14, Sec. 5.1] of a noisy first layer. Input: the true first
 # layer (unit rows) plus i.i.d. Gaussian noise. -> results/b_refine.csv, figures/B/b_refine.pdf
 import csv
+import os
+import sys
 
-import _path
 import numpy as np
-from bstyle import BLUE, GRAY, ORANGE, plt
 
-from bmetrics import layer1_error, unit_rows
-from common import Oracle, random_network
-from refine import refine_layer1
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from b_style import BLUE, GRAY, ORANGE, plt  # noqa: E402
+
+from bmetrics import layer1_error, unit_rows  # noqa: E402
+from common import Oracle, random_network  # noqa: E402
+from refine import refine_layer1  # noqa: E402
 
 N_NETS, SEED = 100, 2026
 NOISE = [1e-6, 1e-8, 1e-10]
@@ -46,7 +50,7 @@ def main():
             )
             if dist == "uniform01" and noise == 1e-8:
                 fig_data = (b, a)
-    with open(f"{_path.ROOT}/results/b_refine.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_refine.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(
             [
@@ -73,8 +77,8 @@ def main():
     ax.set_ylabel("fraction of networks")
     ax.legend(loc="center right", frameon=False)
     fig.tight_layout()
-    fig.savefig(f"{_path.ROOT}/figures/B/b_refine.pdf")
-    print(open(f"{_path.ROOT}/results/b_refine.csv").read())
+    fig.savefig(f"{ROOT}/figures/B/b_refine.pdf")
+    print(open(f"{ROOT}/results/b_refine.csv").read())
 
 
 if __name__ == "__main__":

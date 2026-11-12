@@ -2,13 +2,17 @@
 # first layer with random positive row scaling, random sign flips and optional relative noise on
 # every entry. -> results/b_signs.csv, tables/B/b_signs.tex
 import csv
+import os
+import sys
 
-import _path
 import numpy as np
 
-from bmetrics import scrambled_layer1
-from common import Oracle, Params, forward, random_network
-from signs import fix_signs, fix_signs_lstsq
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from bmetrics import scrambled_layer1  # noqa: E402
+from common import Oracle, Params, forward, random_network  # noqa: E402
+from signs import fix_signs, fix_signs_lstsq  # noqa: E402
 
 N_NETS, SEED = 100, 2026
 DISTS = ["uniform01", "uniform_pm1", "normal"]
@@ -51,14 +55,14 @@ def main():
     rng = np.random.default_rng(SEED)
     rows = [(d, n, *run(d, n, rng)) for d in DISTS for n in NOISE]
     hdr = ["weights", "noise", "pre_ok", "pre_queries", "ls_ok", "ls_queries", "ls_med_func_err"]
-    with open(f"{_path.ROOT}/results/b_signs.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_signs.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(hdr)
         for r in rows:
             wr.writerow(
                 [r[0], f"{r[1]:.0e}", r[2], f"{r[3]:.0f}", r[4], f"{r[5]:.0f}", f"{r[6]:.2e}"]
             )
-    with open(f"{_path.ROOT}/results/b_signs_failures.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_signs_failures.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["weights", "noise", "method", "cond_A1", "median_cond_all_nets"])
         for d, n, m, c in FAILS:
@@ -84,10 +88,10 @@ def main():
             f"{r[5]:.0f} & $2^{{{np.log2(e):.0f}}}$\\\\"
         )
     lines += ["\\bottomrule", "\\end{tabular}"]
-    with open(f"{_path.ROOT}/tables/B/b_signs.tex", "w") as fh:
+    with open(f"{ROOT}/tables/B/b_signs.tex", "w") as fh:
         fh.write("\n".join(lines) + "\n")
-    print(open(f"{_path.ROOT}/results/b_signs.csv").read())
-    print(open(f"{_path.ROOT}/results/b_signs_failures.csv").read())
+    print(open(f"{ROOT}/results/b_signs.csv").read())
+    print(open(f"{ROOT}/results/b_signs_failures.csv").read())
 
 
 if __name__ == "__main__":

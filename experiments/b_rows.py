@@ -2,13 +2,17 @@
 # (true_witness) so that only layer1.py is exercised. -> results/b_rows.csv,
 # figures/B/b_rows.pdf
 import csv
+import os
+import sys
 
-import _path
 import numpy as np
-from bstyle import BLUE, GRAY, ORANGE, plt
 
-from common import Oracle, Witness, random_network, true_witness
-from layer1 import DELTA_FRAC, row_from_witness, row_from_witness_coord, row_with_steps
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from b_style import BLUE, GRAY, ORANGE, plt  # noqa: E402
+
+from common import Oracle, Witness, random_network, true_witness  # noqa: E402
+from layer1 import DELTA_FRAC, row_from_witness, row_from_witness_coord, row_with_steps  # noqa: E402
 
 N_NETS, SEED = 50, 2026
 EPS = np.logspace(-10, -2, 17)
@@ -52,11 +56,11 @@ def line_check(n_nets=300):
             queries += q
             retried += q > 23
             total += 1
-    with open(f"{_path.ROOT}/results/b_rows_lines.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_rows_lines.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["witnesses", "plain_wrong", "checked_wrong", "retried", "mean_queries"])
         wr.writerow([total, plain_bad, ours_bad, retried, f"{queries / total:.2f}"])
-    print(open(f"{_path.ROOT}/results/b_rows_lines.csv").read())
+    print(open(f"{ROOT}/results/b_rows_lines.csv").read())
 
 
 def main():
@@ -78,7 +82,7 @@ def main():
     def stats(e):
         return np.median(e), np.percentile(e, 90), np.max(e)
 
-    with open(f"{_path.ROOT}/results/b_rows.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_rows.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["eps", "median", "p90", "max"])
         for eps, e in zip(EPS, fixed, strict=True):
@@ -100,8 +104,8 @@ def main():
     ax.set_ylim(top=10)
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False)
     fig.tight_layout()
-    fig.savefig(f"{_path.ROOT}/figures/B/b_rows.pdf")
-    print(open(f"{_path.ROOT}/results/b_rows.csv").read())
+    fig.savefig(f"{ROOT}/figures/B/b_rows.pdf")
+    print(open(f"{ROOT}/results/b_rows.csv").read())
 
 
 def method_compare(n_nets=100):
@@ -136,7 +140,7 @@ def method_compare(n_nets=100):
                 len(e),
             ]
         )
-    with open(f"{_path.ROOT}/results/b_rows_methods.csv", "w", newline="") as fh:
+    with open(f"{ROOT}/results/b_rows_methods.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["method", "witnesses", "mean_queries", "median_err", "max_err", "wrong", "n"])
         wr.writerows(rows)
@@ -160,9 +164,9 @@ def method_compare(n_nets=100):
             f"{name[r[0]]} & {r[1]} & {r[2]} & {tex(r[3])} & {tex(r[4])} & {r[5]}/{r[6]}\\\\"
         )
     lines += ["\\bottomrule", "\\end{tabular}"]
-    with open(f"{_path.ROOT}/tables/B/b_rows_methods.tex", "w") as fh:
+    with open(f"{ROOT}/tables/B/b_rows_methods.tex", "w") as fh:
         fh.write("\n".join(lines) + "\n")
-    print(open(f"{_path.ROOT}/results/b_rows_methods.csv").read())
+    print(open(f"{ROOT}/results/b_rows_methods.csv").read())
 
 
 if __name__ == "__main__":

@@ -32,5 +32,21 @@ make bench-b     # role B experiments -> results/, figures/B/, tables/B/
 | `results/b_signs.csv`, `results/b_signs_failures.csv`, `tables/B/b_signs.tex` | `experiments/b_signs.py` | Table B1, §3.3 |
 | `results/b_refine.csv`, `figures/B/b_refine.pdf` | `experiments/b_refine.py` | Fig. B2, §3.5 |
 
-All experiments use fixed seeds (2026). The LaTeX sources of B's report
+All experiments use fixed seeds (2026).
+
+## Merging into the group repository
+
+Role B owns only these files: `layer1.py`, `signs.py`, `refine.py`, `bmetrics.py`,
+`tests/test_layer1.py`, `tests/test_signs.py`, `tests/test_refine.py`,
+`tests/test_b_pipeline.py`, `experiments/b_*.py`, `results/b_*.csv`,
+`figures/B/`, `tables/B/`, `report/`. `common.py` is the frozen copy (byte-identical).
+`conftest.py`, `pytest.ini`, `Makefile`, `README.md`, `requirements.txt` and
+`.gitignore` are only here so this repository runs on its own; use C's versions
+when merging. B's code only imports `common` and numpy, and only calls
+`oracle(x)`; `bmetrics.py` uses ground truth and is imported by tests and
+experiments only.
+
+`tests/test_b_pipeline.py` chains B's functions the way `attack.py` will:
+`row_from_witness` on every witness, `merge_neurons` until it returns 10 rows,
+then `fix_signs` and `refine_layer1`. A's search is replaced by a stand-in. The LaTeX sources of B's report
 sections are in `report/`.
