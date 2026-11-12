@@ -2,16 +2,20 @@
 \subsection{Recovering First-Layer Rows}
 \label{sec:B-rows}
 
-Given a witness $x\in\wit{j}$ from Sect.~\ref{sec:A-critical}, we recover the
-$j$-th row of $\Aone$ up to a scalar, following the differential idea
-of~\cite[\S4.2]{DBLP:conf/crypto/CarliniJM20}. Inside a region where the
+Each witness from Sect.~\ref{sec:A-critical} gives one row of $\Aone$, up to
+scale and sign. Getting the row is easy in exact arithmetic. The real
+difficulty is the finite-difference step: too small and rounding dominates,
+too large and a probe crosses some hyperplane and the row is simply wrong.
+Most of this subsection is about that step.
+
+The idea is from~\cite[\S4.2]{DBLP:conf/crypto/CarliniJM20}. Where the
 activation pattern is fixed, $f$ is affine with
-$\nabla f(x)=\sum_{k}\Atwo_k\,\mathbb{1}[\pre{k}{x}>0]\,(\Aone_k)^{\top}$, so a
-change of gradient across a critical hyperplane isolates a single neuron.
+$\nabla f(x)=\sum_{k}\Atwo_k\,\mathbb{1}[\pre{k}{x}>0]\,(\Aone_k)^{\top}$, so the
+change of gradient across one critical hyperplane only contains that neuron.
 
 \begin{proposition}[gradient jump]\label{prop:B-jump}
 Let $x\in\wit{j}$, let $v$ be a unit vector with $\Aone_j v\neq0$, and let
-$\delta>0$ be such that no other neuron changes sign on the segment
+$\delta>0$ be such that no other neuron changes sign on
 $\{x+tv: |t|\le\delta\}$. Then
 \begin{equation}\label{eq:B-jump}
   \nabla f(x+\delta v)-\nabla f(x-\delta v)
@@ -20,49 +24,42 @@ $\{x+tv: |t|\le\delta\}$. Then
 \end{proposition}
 
 \begin{proof}
-For $k\neq j$ the indicator $\mathbb{1}[\pre{k}{\cdot}>0]$ takes the same value
-at $x\pm\delta v$, so these terms cancel in the difference. For neuron $j$,
-$\pre{j}{x\pm\delta v}=\pm\delta\,\Aone_j v$, hence $\eta_j$ is active at
-exactly one of the two points: at $x+\delta v$ if $\Aone_j v>0$ and at
-$x-\delta v$ otherwise. Only its term $\Atwo_j(\Aone_j)^{\top}$ survives, with
-the sign of $\Aone_j v$.\qed
+For $k\neq j$ the indicator $\mathbb{1}[\pre{k}{\cdot}>0]$ is the same at both
+points and cancels. $\pre{j}{x\pm\delta v}=\pm\delta\,\Aone_j v$, so $\eta_j$ is
+active at exactly one of them, at $x+\delta v$ iff $\Aone_j v>0$. Only
+$\Atwo_j(\Aone_j)^{\top}$ is left, with sign $\operatorname{sign}(\Aone_j v)$.\qed
 \end{proof}
 
-Proposition~\ref{prop:B-jump} gives the direction of $\Aone_j$ but neither its
-length nor its sign, since $\operatorname{sign}(\Aone_j v)\Atwo_j$ is unknown.
-The length is irrelevant by Proposition~\ref{prop:A-symmetry}; the sign is
-recovered in Sect.~\ref{sec:B-signs}. Because the witness lies on the
-hyperplane, the bias of the normalised row $\hat a=\Aone_j/\|\Aone_j\|$ is
-$\hat b=-\hat a\cdot x$.
+So the jump gives the direction of $\Aone_j$, nothing more. The length does not
+matter (Proposition~\ref{prop:A-symmetry}); the sign does, and is fixed in
+Sect.~\ref{sec:B-signs}. The bias of the unit row $\hat a$ is $\hat b=-\hat a\cdot x$,
+since the witness lies on the hyperplane.
 
 \paragraph{Algorithm.}
-Algorithm~\ref{alg:B-row} turns Proposition~\ref{prop:B-jump} into queries.
-Gradients are estimated by forward differences along the $\dzero$ coordinate
-axes, so each of the two points costs $\dzero+1$ queries, sent as one batch.
-Unlike~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20}, we difference at points
-that are already on either side of the hyperplane, which keeps the relative
-signs of the entries of the row and removes the need for a separate
-column-sign step.
+We estimate both gradients by forward differences along the $\dzero$ axes,
+$\dzero+1$ queries per point, all in one batch (Algorithm~\ref{alg:B-row}).
+Unlike~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20} we difference at points that
+already sit on the two sides of the hyperplane. This keeps the relative signs
+of the entries, so no column-sign step is needed.
 
-\paragraph{Consistency check (ours).}
-Proposition~\ref{prop:B-jump} needs every probe $p_s+\varepsilon e_i$ to stay
-on the same side of $\wit{j}$ as $p_s$. The distance from $p_s$ to the
-hyperplane along $e_i$ is $\delta|\Aone_j v|/|\Aone_{j,i}|$, which is tiny when
-the search line is almost parallel to the hyperplane, and $\varepsilon$
-cannot be chosen in advance because $\Aone_j$ is unknown: the safe bound
+\paragraph{The step must not cross the witness's own hyperplane.}
+This was a real bug in our first version, and the exact witnesses used in
+unit tests hide it. A probe $p_s+\varepsilon e_i$ is at distance
+$\delta|\Aone_j v|/|\Aone_{j,i}|$ from $\wit{j}$ along $e_i$. When the search
+line is nearly parallel to the hyperplane this is tiny, the probe crosses,
+and the row comes out wrong. The bound
 $\varepsilon<\delta/\sum_{i,j}|\Aone_{ij}|$ of~\cite[\S4.2]{DBLP:conf/crypto/CarliniJM20}
-assumes a known margin $\delta$ in pre-activation space and known weights. We therefore spend
-one more query on $f(x)$. Along the line, $f$ has a single kink inside
+does not help: it needs the weights we are trying to find. Our fix costs one
+extra query, $f(x)$. Along the line there is a single kink in
 $[-\delta,\delta]$, so
 $s_v=\bigl(f(p_{+})-2f(x)+f(p_{-})\bigr)/\delta$ is the exact slope jump along
-$v$ and must equal $J\cdot v$. If $|J\cdot v-s_v|>10^{-5}\|J\|$, a probe has
-crossed the hyperplane; we then estimate $|\hat a\cdot v|\approx|s_v|/\|J\|$
-and repeat the differencing with
+$v$, and it must equal $J\cdot v$. If $|J\cdot v-s_v|>10^{-5}\|J\|$ we know a
+probe crossed. We then take $|\hat a\cdot v|\approx|s_v|/\|J\|$ and redo the
+differencing with
 $\varepsilon\gets\min(10^{-2}\varepsilon,\;0.1\,\delta|s_v|/\|J\|_\infty)$.
-With uniformly random search directions (3000 witnesses of 300 networks),
-plain differencing returned a wrong row for 28 witnesses ($0.9\%$); with
-the check none were wrong, the 28 affected witnesses were retried, and the
-average cost was $23.2$ queries per witness (\texttt{results/b\_rows\_lines.csv}).
+On 3000 witnesses with uniformly random search directions, plain
+differencing gave 28 wrong rows ($0.9\%$). With the check: none, at
+$23.2$ queries per witness on average (\texttt{results/b\_rows\_lines.csv}).
 
 \begin{algorithm}[t]
 \caption{\texttt{row\_from\_witness}: one row of $\Aone$ (up to sign) from a witness.}
@@ -80,26 +77,22 @@ $s_v\gets\bigl(\oracle(p_+)-2\oracle(x)+\oracle(p_-)\bigr)/\delta$\tcp*{reuses $
 $\hat a\gets J/\|J\|$;\quad \Return $(\hat a,\,-\hat a\cdot x)$\;
 \end{algorithm}
 
-\paragraph{Choosing the step size.}
-Two errors compete. If $\varepsilon$ is too small, rounding dominates: each
-partial derivative carries an absolute error of about $u|f|/\varepsilon$
-($u=2^{-53}$), which relative to the size of the jump $|\Atwo_j|\,\|\Aone_j\|$
-gives a row error of order $u|f|/(\varepsilon|\Atwo_j|\|\Aone_j\|)$. If
-$\varepsilon$ is too large, a probe $p_s+\varepsilon e_i$ crosses another
-critical hyperplane and the estimate is wrong by $\Theta(1)$.
-Fig.~\ref{fig:B-rows} measures both effects on exact witnesses
-(\texttt{true\_witness}) for 500 neurons of 50 networks. With a fixed
-$\varepsilon$ the median error falls like $1/\varepsilon$, from
-$6.0\times10^{-6}$ at $\varepsilon=10^{-10}$ to $7.2\times10^{-13}$ at
-$10^{-3}$, but from $\varepsilon\approx3\times10^{-6}$ on the worst neuron is
-wrong by more than $0.1$: no fixed step suits every witness. We therefore tie
-the step to the witness radius, $\varepsilon=10^{-3}r$, which never crossed a
-hyperplane (median error $7.5\times10^{-12}$, maximum $1.3\times10^{-8}$). The
-remaining large errors come from neurons with a small radius or a small
-$|\Atwo_j|$, exactly as the estimate above predicts; Sect.~\ref{sec:B-refine}
-removes them. On the test criterion, all $1000$ neurons of $100$ networks
-satisfy $|\cos(\hat a,\Aone_j)|\ge1-10^{-10}$, also when every search line
-is forced to be within $10^{-3}$ of parallel to the hyperplane.
+\paragraph{No fixed step works.}
+Rounding gives each partial derivative an error of about $u|f|/\varepsilon$
+($u=2^{-53}$); relative to the jump $|\Atwo_j|\,\|\Aone_j\|$ that is a row error
+of order $u|f|/(\varepsilon|\Atwo_j|\|\Aone_j\|)$. A large step instead crosses
+another neuron's hyperplane and gives an $\Theta(1)$ error.
+Fig.~\ref{fig:B-rows} shows both on 500 exact witnesses (\texttt{true\_witness},
+50 networks). With a fixed $\varepsilon$ the median error falls like
+$1/\varepsilon$, from $6.0\times10^{-6}$ at $10^{-10}$ to $7.2\times10^{-13}$ at
+$10^{-3}$, but already from $\varepsilon\approx3\times10^{-6}$ the worst neuron
+is off by more than $0.1$. So we tie the step to the witness radius,
+$\varepsilon=10^{-3}r$. It never crossed a hyperplane; median error
+$7.5\times10^{-12}$, worst $1.3\times10^{-8}$. The worst cases are neurons with
+a small radius or a small $|\Atwo_j|$, as the estimate predicts, and
+Sect.~\ref{sec:B-refine} cleans them up. On the test criterion all $1000$
+neurons of $100$ networks have $|\cos(\hat a,\Aone_j)|\ge1-10^{-10}$, also with
+search lines forced within $10^{-3}$ of parallel.
 
 \begin{figure}[t]
 \centering
@@ -110,44 +103,36 @@ relative choice $\varepsilon=10^{-3}r$.}
 \label{fig:B-rows}
 \end{figure}
 
-\paragraph{Merging candidates.}
-The search returns several witnesses per neuron, in unknown order. We treat
-two candidate rows as the same neuron when $|\cos(\hat a,\hat a')|>1-10^{-6}$
-(rows of different neurons in our setting are far less aligned). Within a
-group we flip all members to the sign of the first, average and re-normalise
-the rows, and take the \emph{median} of the aligned biases, which tolerates a
-single bad witness. If fewer than $\done$ groups exist, \texttt{merge\_neurons}
-returns \texttt{None} and the attack searches another line. If there are more
-than $\done$, the extra groups are spurious rows (e.g.\ two close kinks
-mistaken for one), and we keep the $\done$ most frequent groups; an optional
-\texttt{min\_count}$=2$ discards groups seen only once, as suggested for
-signed weights. Ties between the $\done$-th and $(\done+1)$-th group also
-return \texttt{None}. This mirrors the duplicate-based filtering
-of~\cite[\S4.3.1]{DBLP:conf/crypto/CarliniJM20}, simplified because a one-deep
-network has no deeper-layer critical points. The graph clustering and
-median-of-ratios unification of~\cite[\S5.4]{DBLP:conf/crypto/CarliniJM20}
-exist because a hidden layer only yields \emph{partial} rows (inactive
-inputs give no information) and normalising by one small entry spreads its
-error to the whole row. Neither problem arises here: every witness gives a
-complete first-layer row, and we normalise by the Euclidean norm rather than
-by a single coordinate, so a plain $|\cos|$ test suffices.
+\paragraph{Merging.}
+Several witnesses hit the same neuron, in no particular order. Two
+candidates are one neuron if $|\cos(\hat a,\hat a')|>1-10^{-6}$. In a group we
+flip everything to the first member's sign, average and renormalise the rows,
+and take the median bias, so one bad witness cannot shift it. Fewer than
+$\done$ groups: \texttt{merge\_neurons} returns \texttt{None} and the attack
+searches another line. More than $\done$: the extra groups are spurious rows
+(two close kinks taken as one) and we keep the $\done$ most frequent; a tie
+at the cut also returns \texttt{None}, and \texttt{min\_count}$=2$ drops
+singletons for signed weights. This is the duplicate filter
+of~\cite[\S4.3.1]{DBLP:conf/crypto/CarliniJM20} without the deeper-layer part.
+We do not need the graph clustering and median-of-ratios unification
+of~\cite[\S5.4]{DBLP:conf/crypto/CarliniJM20}. That machinery handles partial
+rows from hidden layers and the error blow-up from dividing by one small
+entry. Here every witness gives a full row and we normalise by the Euclidean
+norm, so $|\cos|$ is enough.
 
-\paragraph{Comparison with the coordinate method~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20}.}
-As a bonus we also implemented the alternative of~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20}
-(\texttt{row\_from\_witness\_coord}). It steps from $x$ itself along
-$\pm e_i$ and differentiates along the same axis, so the slope jump at $x$ is
-$|\Atwo_j|\,|\Aone_{j,i}|$: the step can be large ($10^{-2}r$), but only
-magnitudes are learned. Column signs relative to the largest entry $r$ are
-then read from the jump along $e_r+e_k$, which is $|a_r|+|a_k|$ for equal
-signs and $\bigl||a_r|-|a_k|\bigr|$ otherwise, for $1+2\dzero+2(\dzero-1)=39$
-queries in total. Table~\ref{tab:B-rowmethods} compares both methods on
-1000 exact witnesses and 1000 witnesses with uniformly random search
-directions. The larger step makes the coordinate method about ten times more
-precise, at $1.7\times$ the queries; but it has no safeguard against probes
-crossing another hyperplane, and one random-direction witness gave a wrong
-row. We keep Algorithm~\ref{alg:B-row} in the attack, because a wrong row costs
-far more than the precision gained, which Sect.~\ref{sec:B-refine} recovers
-anyway.
+\paragraph{The coordinate method of~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20} is more precise but less safe.}
+We implemented it as a bonus (\texttt{row\_from\_witness\_coord}). It steps
+from $x$ itself along $\pm e_i$ and differentiates along the same axis. The
+slope jump is then $|\Atwo_j|\,|\Aone_{j,i}|$, so the step can be large
+($10^{-2}r$) but only magnitudes come out. Signs relative to the largest entry
+$r$ come from the jump along $e_r+e_k$: $|a_r|+|a_k|$ for equal signs,
+$\bigl||a_r|-|a_k|\bigr|$ otherwise. Total $1+2\dzero+2(\dzero-1)=39$ queries.
+Table~\ref{tab:B-rowmethods} has the comparison. The coordinate method is
+about ten times more precise at $1.7\times$ the queries, but it has nothing
+that detects a crossed hyperplane, and it returned one wrong row out of 1000
+random-direction witnesses. A wrong row breaks the whole extraction, while
+the lost precision is recovered by Sect.~\ref{sec:B-refine}, so the attack
+uses Algorithm~\ref{alg:B-row}.
 
 \begin{table}[t]
 \centering

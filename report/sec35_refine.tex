@@ -2,49 +2,45 @@
 \subsection{Precision Refinement}
 \label{sec:B-refine}
 
-The error of a finite-difference row (Sect.~\ref{sec:B-rows}) depends on the
-witness that produced it. Following~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20},
-we improve a coarse first layer by re-locating the true hyperplane of each
-neuron directly, using value queries only and no further differencing.
+Refinement takes the first layer from about $2^{-25}$ to about $2^{-46}$
+(median), for $1200$ queries. It is needed because the row error of
+Sect.~\ref{sec:B-rows} depends on the witness: a small radius or a small
+$|\Atwo_j|$ gives a poor row, and that error goes straight into layer 2. The
+idea is from~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20}: use the coarse row
+only to find the hyperplane approximately, then locate it again with value
+queries and no differencing.
 
 For neuron $j$ we draw $x\sim\mathcal N(0,I)$, project it onto the
-\emph{estimated} hyperplane $\hat a_j\cdot x+\hat b_j=0$, and pick a unit
-direction $u$ with $|\hat a_j\cdot u|\ge0.3$. The true critical point lies
-close to $x$, so on a short segment $x+tu$, $t\in[-\tau,\tau]$, the function
-$g(t)=f(x+tu)$ has a single kink. We take
-$\tau=\min(10^{-2},\tfrac12\min_{k\neq j}|\hat z_k(x)|/|\hat a_k\cdot u|)$
-from the current estimate. Instead of bisecting, we locate the kink in one
-step (our variant): two probes at each end define the left and right lines of
-$g$, and their intersection $t^*$ is the kink exactly, up to rounding. Two
-further queries check that the midpoints of both halves lie on their lines;
-otherwise the point is discarded. Each point costs $6$ queries, and we collect
-$2\dzero=20$ points per neuron, i.e.\ $1200$ queries for the layer.
+\emph{estimated} hyperplane, and pick a unit direction $u$ with
+$|\hat a_j\cdot u|\ge0.3$. The true hyperplane is very close, so
+$g(t)=f(x+tu)$ on $t\in[-\tau,\tau]$ has one kink, with
+$\tau=\min(10^{-2},\tfrac12\min_{k\neq j}|\hat z_k(x)|/|\hat a_k\cdot u|)$. We do not
+bisect. Two probes at each end give the left and right lines of $g$, and
+their intersection $t^*$ is the kink, exact up to rounding. Two more queries
+check that the midpoints of both halves lie on their lines; if not, the
+point is dropped. That is $6$ queries per point and $2\dzero=20$ points per
+neuron.
 
-The snapped points $x_i'$ lie on the true hyperplane. We fit it by total
-least squares: the unit normal is the right singular vector of the centred
-matrix $[x_i'-\bar x']$ for the smallest singular value, and the bias is
-$-\hat a\cdot\bar x'$. We then drop points whose residual exceeds ten times
-the median and refit once. A refined row is accepted only if it moved by less
-than $10^{-4}$; otherwise the old row is kept, as
-in~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20}.
-Our version differs from~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20} in two
-ways. First, instead of tuning the segment length so that roughly half of
-the attempts fail, we bound it by the estimated distance to the other
-hyperplanes and reject a point when the two mid-point checks fail. Second,
-instead of the robust estimator used there, we use one
-round of residual-based outlier removal, which suffices because the
-mid-point checks already filter most bad points.
+The snapped points lie on the true hyperplane. The normal is the right
+singular vector of the centred points for the smallest singular value, and
+the bias is $-\hat a\cdot\bar x'$. We drop points with residual above ten times
+the median and refit once. If the row moved by more than $10^{-4}$ we keep the
+old one.
 
-To test the refinement on its own, we add i.i.d.\ Gaussian noise of standard
-deviation $10^{-8}$ to the true, normalised first layer
-(Fig.~\ref{fig:B-refine}). For 100 $U[0,1]$ networks the maximum parameter
-error falls from a median of $2^{-25.2}$ to $2^{-46.1}$, and the worst network
-reaches $2^{-39.0}$; $99\%$ of the networks are at or below $2^{-40}$. With
-noise $10^{-6}$ and $10^{-10}$, and for $U[-1,1]$ and $\mathcal N(0,1)$
-weights, $96$--$100\%$ of the networks reach $2^{-40}$ and the worst case is
-$2^{-36.3}$ (\texttt{results/b\_refine.csv}). The result therefore does not
-depend on how coarse the input was, as long as the true hyperplane falls
-inside the short segment.
+Two things differ from~\cite[\S5.1]{DBLP:conf/crypto/CarliniJM20}. We bound the
+segment by the estimated distance to the other hyperplanes instead of tuning
+it until about half the attempts fail, and we use one round of outlier removal
+instead of their robust estimator. The midpoint checks already throw out most
+bad points, which is why the simpler fit is enough.
+
+Fig.~\ref{fig:B-refine} tests refinement alone: Gaussian noise with standard
+deviation $10^{-8}$ on the true, normalised first layer of 100 $U[0,1]$
+networks. The maximum parameter error goes from a median of $2^{-25.2}$ to
+$2^{-46.1}$; the worst network ends at $2^{-39.0}$, and $99\%$ reach $2^{-40}$.
+With noise $10^{-6}$ or $10^{-10}$, and for $U[-1,1]$ and $\mathcal N(0,1)$
+weights, $96$--$100\%$ reach $2^{-40}$ and the worst case is $2^{-36.3}$
+(\texttt{results/b\_refine.csv}). How coarse the input was does not matter,
+as long as the true hyperplane falls inside the short segment.
 
 \begin{figure}[t]
 \centering

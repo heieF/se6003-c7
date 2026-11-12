@@ -2,63 +2,60 @@
 \subsection{Recovering Signs}
 \label{sec:B-signs}
 
-After merging, each row $\hat a_j$ equals $s_j c_j\Aone_j$ with an unknown
-$c_j>0$ and an unknown sign $s_j\in\{\pm1\}$. The scale $c_j$ is a genuine
-symmetry (Proposition~\ref{prop:A-symmetry}), but the sign is not. Using
-$\relu(-z)=\relu(z)-z$, replacing $(\Aone_j,\bone_j)$ by
-$(-\Aone_j,-\bone_j)$ while keeping $\Atwo_j$ gives
+After merging, row $j$ is $\hat a_j=s_jc_j\Aone_j$ with unknown $c_j>0$ and
+$s_j\in\{\pm1\}$. The scale is a true symmetry
+(Proposition~\ref{prop:A-symmetry}). The sign is not: by
+$\relu(-z)=\relu(z)-z$, flipping $(\Aone_j,\bone_j)$ and keeping $\Atwo_j$ gives
 \begin{equation}\label{eq:B-flip}
   \tilde f(x)=f(x)-\Atwo_j\,\pre{j}{x},
 \end{equation}
-which differs from $f$ by a non-constant affine function whenever
-$\Atwo_j\neq0$. Output-layer recovery (Sect.~\ref{sec:A-layer2}) assumes the
-first layer is exact, so every sign has to be fixed first.
+a different function whenever $\Atwo_j\neq0$. Layer-2 recovery
+(Sect.~\ref{sec:A-layer2}) assumes an exact first layer, so a single wrong
+sign ruins it. Both methods below work, with one real weakness, shown in
+Table~\ref{tab:B-signs}: they fail on badly conditioned first layers once
+the rows are noisy.
 
 \paragraph{Pre-image method~\cite[\S4.2]{DBLP:conf/crypto/CarliniJM20}.}
-Let $P=\hat A^{+}$ be the pseudo-inverse of the estimated first layer. If
-$\done\le\dzero$ and $\hat A$ has full row rank, then $\hat AP=I$, so
-moving from $x$ to $x+\tau P_{:,j}$ changes the pre-activation of neuron $j$
-by $\tau$ and leaves all others unchanged. For each $j$ we choose a hidden
-target $h$ with $h_j=0$ and $|h_k|\in[\tfrac12,1]$ (random signs) for
-$k\neq j$, set $x=P(h-\hat b)$, and query $f$ at $x$ and
-$x_\pm=x\pm\tau P_{:,j}$ with $\tau=1$. Neuron $j$ is inactive on one side,
-where $f$ does not change. If that is the ``$+$'' side, then increasing
-$\hat a_j\cdot x$ deactivates the true neuron, so $s_j=-1$ and we negate
-$(\hat a_j,\hat b_j)$. Comparing $|f(x_+)-f(x)|$ with $|f(x_-)-f(x)|$ needs no
-threshold. The method uses $3\done=30$ queries and fails only if $\Atwo_j=0$,
-in which case the sign does not matter.
+With $P=\hat A^{+}$ and $\done\le\dzero$, full row rank gives $\hat AP=I$.
+Moving from $x$ to $x+\tau P_{:,j}$ then changes neuron $j$'s pre-activation by
+$\tau$ and no other. For each $j$ we pick a hidden target $h$ with $h_j=0$ and
+$|h_k|\in[\tfrac12,1]$ (random signs), set $x=P(h-\hat b)$, and query $x$ and
+$x\pm\tau P_{:,j}$ with $\tau=1$. On one side neuron $j$ is off and $f$ does
+not move. If that is the ``$+$'' side, increasing $\hat a_j\cdot x$ turns the
+true neuron off, so $s_j=-1$ and we negate $(\hat a_j,\hat b_j)$. We compare
+$|f(x_+)-f(x)|$ with $|f(x_-)-f(x)|$, so no threshold is needed. Cost:
+$3\done=30$ queries. With exact rows it can only fail when $\Atwo_j=0$, and then the sign is
+irrelevant anyway.
 
 \paragraph{Least-squares method (ours).}
-We also derived a test that uses random queries only. Let
-$\hat z=\hat A x+\hat b$ and let $S$ be the set of rows whose sign is
-wrong. By $\relu(-z)=\relu(z)-z$,
+This one needs only random queries. Let $\hat z=\hat A x+\hat b$ and let $S$
+be the rows with the wrong sign. Again by $\relu(-z)=\relu(z)-z$,
 \begin{equation}\label{eq:B-lstsq}
   f(x)=\sum_{j}w_j\,\relu(\hat z_j)+u\cdot x+u_0,\qquad
   u=-\sum_{j\in S}w_j\hat a_j,\quad u_0=\btwo-\sum_{j\in S}w_j\hat b_j,
 \end{equation}
-where $w_j=\Atwo_j/c_j$. Equation~\eqref{eq:B-lstsq} holds \emph{exactly for
-every} choice of $S$, so we fit $(w,u,u_0)$ by least squares on $n=60$ points
-$x\sim\mathcal N(0,4I)$ ($\done+\dzero+1=21$ unknowns). We then solve
-$\hat A^{\top}\beta=-u$, which gives $\beta_j=w_j$ for $j\in S$ and $\beta_j=0$
-otherwise, and flip row $j$ when $|\beta_j-w_j|<|\beta_j|$. This needs
-$\done\le\dzero$, so that $\beta$ is unique, and a full-rank design, which we
-check. As a by-product it returns the output layer: $\Atwo=w$ and
+with $w_j=\Atwo_j/c_j$. This holds exactly for every $S$, so we fit
+$(w,u,u_0)$ by least squares on $n=60$ points $x\sim\mathcal N(0,4I)$
+($21$ unknowns). Solving $\hat A^{\top}\beta=-u$ gives $\beta_j=w_j$ on $S$ and
+$0$ elsewhere; we flip row $j$ when $|\beta_j-w_j|<|\beta_j|$. It needs
+$\done\le\dzero$ for a unique $\beta$, and a full-rank design, which we check.
+The fit also returns the output layer for free: $\Atwo=w$,
 $\btwo=u_0+\sum_{j\in S}w_j\hat b_j$.
 
-\paragraph{Comparison.}
-Table~\ref{tab:B-signs} starts from the true first layer with random
-positive scaling $c_j\sim U[0.1,10]$, random sign flips and relative noise
-on every entry, for 100 networks per setting. Without noise and at noise
-$10^{-8}$ (larger than the row errors of Sect.~\ref{sec:B-rows}) both
-methods recover all signs for all three weight distributions. The
-pre-image method needs half the queries, while the least-squares method also
-yields an output layer with median error $2^{-42}$--$2^{-41}$ on exact rows. At noise
-$10^{-4}$ a few networks fail with both methods. All of them have an
-ill-conditioned first layer: the failures have
-$\operatorname{cond}(\Aone)$ between $479$ and $1.74\times10^{3}$ (rows
+\paragraph{Results.}
+Table~\ref{tab:B-signs} starts from the true first layer with random scaling
+$c_j\sim U[0.1,10]$, random flips and relative noise on every entry, 100
+networks per row. With no noise and with noise $10^{-8}$ (above our row
+errors) both methods get every sign right for all three weight distributions.
+The pre-image method uses half the queries; ours also gives a layer-2
+estimate with median error $2^{-42}$--$2^{-41}$ on exact rows. At noise
+$10^{-4}$ both fail on a few networks, all with an ill-conditioned first
+layer: $\operatorname{cond}(\Aone)$ between $479$ and $1.74\times10^{3}$ (rows
 normalised), against medians of $90.7$ for $U[0,1]$ and $30.5$ for
-$\mathcal N(0,1)$. A large $\|P\|$ amplifies the row error, so the pre-image
-point is no longer close to the hyperplane.
+$\mathcal N(0,1)$. A large $\|P\|$ amplifies the row error, and the pre-image
+point is no longer near the hyperplane. In the full attack the rows are far
+more precise than $10^{-4}$, so this does not occur there; it only matters if
+the rows come out coarse.
 
 \begin{table}[t]
 \centering
