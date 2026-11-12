@@ -22,7 +22,8 @@ plt.rcParams.update(
         "grid.color": "#e4e3df",
         "grid.linewidth": 0.5,
         "lines.linewidth": 1.5,
-        "pdf.fonttype": 42,
+        "pdf.fonttype": 3,
+        "pdf.compression": 9,
         "figure.dpi": 150,
     }
 )
