@@ -85,9 +85,7 @@ class Witness:
 # ---------------- ground-truth helpers: tests / experiments ONLY ----------------
 
 
-def true_witness(
-    p: Params, j: int, rng: np.random.Generator, max_radius: float = 1.0
-) -> Witness:
+def true_witness(p: Params, j: int, rng: np.random.Generator, max_radius: float = 1.0) -> Witness:
     """Exact witness for neuron j, built from the true parameters."""
     a, V = p.A1[j], lambda z: p.A1 @ z + p.b1
     x0 = rng.normal(size=p.d0)
@@ -97,9 +95,7 @@ def true_witness(
         v /= np.linalg.norm(v)
         if abs(a @ v) >= 0.3 * np.linalg.norm(a):
             break
-    others = [
-        abs(V(x)[k]) / max(abs(p.A1[k] @ v), 1e-12) for k in range(p.d1) if k != j
-    ]
+    others = [abs(V(x)[k]) / max(abs(p.A1[k] @ v), 1e-12) for k in range(p.d1) if k != j]
     return Witness(x, v, min(0.5 * min(others), max_radius))
 
 
@@ -109,13 +105,9 @@ def equivalent_params(p: Params, rng: np.random.Generator) -> Params:
     return Params((p.A1 * c[:, None])[perm], (p.b1 * c)[perm], (p.A2 / c)[perm], p.b2)
 
 
-def max_func_err(
-    p: Params, q: Params, rng: np.random.Generator, n: int = 100_000
-) -> float:
+def max_func_err(p: Params, q: Params, rng: np.random.Generator, n: int = 100_000) -> float:
     """max |f_p(x) - f_q(x)| over n uniform samples from the ball ||x||_2 <= d0."""
     d = p.d0
     U = rng.normal(size=(n, d))
-    U *= (d * rng.uniform(size=(n, 1)) ** (1 / d)) / np.linalg.norm(
-        U, axis=1, keepdims=True
-    )
+    U *= (d * rng.uniform(size=(n, 1)) ** (1 / d)) / np.linalg.norm(U, axis=1, keepdims=True)
     return float(np.max(np.abs(forward(p, U) - forward(q, U))))

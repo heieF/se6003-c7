@@ -16,27 +16,35 @@ DELTA_FRAC = 0.1  # distance from the witness to the two gradient points
 EPS_FRAC = 0.01  # finite-difference step, relative to delta
 # Two candidate rows are the same neuron if |cos| exceeds this threshold.
 MERGE_COS = 1.0 - 1e-6
-# A jump smaller than this (relative to the gradient size) means "no kink".
-MIN_REL_JUMP = 1e-9
+# Probes must stay this fraction of the way from the witness's own hyperplane.
+SAFETY = 0.1
+MAX_RETRIES = 3
+# Allowed |J.v - s_v| relative to |J| (rounding is ~1e-8 at worst).
+CONSIST_TOL = 1e-5
 
 
-def gradients(oracle: Oracle, points: np.ndarray, eps: float) -> np.ndarray:
+def gradients(
+    oracle: Oracle, points: np.ndarray, eps: float, extra: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Forward-difference gradients at each row of `points` (k, d0).
 
-    Uses k * (d0 + 1) queries, sent to the oracle as one batch.
+    Uses k * (d0 + 1) queries (plus len(extra)), sent as one batch.
+    Returns (gradients (k, d0), f(points) (k,), f(extra)).
     """
     k, d0 = points.shape
     probes = points[:, None, :] + eps * np.vstack([np.zeros(d0), np.eye(d0)])[None]
-    y = np.asarray(oracle(probes.reshape(-1, d0))).reshape(k, d0 + 1)
-    return (y[:, 1:] - y[:, :1]) / eps
+    X = probes.reshape(-1, d0)
+    if extra is not None:
+        X = np.vstack([X, extra])
+    y = np.asarray(oracle(X))
+    base = y[: k * (d0 + 1)].reshape(k, d0 + 1)
+    return (base[:, 1:] - base[:, :1]) / eps, base[:, 0], y[k * (d0 + 1) :]
 
 
-def row_jump(
-    oracle: Oracle, w: Witness, delta: float, eps: float
-) -> np.ndarray:
+def row_jump(oracle: Oracle, w: Witness, delta: float, eps: float) -> np.ndarray:
     """grad f(x + delta v) - grad f(x - delta v)  (2 (d0 + 1) queries)."""
     pts = np.stack([w.x + delta * w.direction, w.x - delta * w.direction])
-    g = gradients(oracle, pts, eps)
+    g = gradients(oracle, pts, eps)[0]
     return g[0] - g[1]
 
 
@@ -45,9 +53,35 @@ def row_from_witness(oracle: Oracle, w: Witness) -> tuple[np.ndarray, float] | N
 
     The sign of the row is NOT determined (see signs.py). Returns None when no
     gradient jump is visible at w (e.g. the neuron has zero output weight).
+
+    Normally 2 (d0 + 1) + 1 = 23 queries. The extra query f(x) gives the
+    slope jump along v, s_v = (f(x+dv) - 2 f(x) + f(x-dv)) / d, which must
+    equal J.v for the gradient jump J. If not, a probe crossed neuron j's own
+    hyperplane (the search line is almost parallel to it), and J is
+    recomputed (22 more queries) with a step that is safe for that angle.
     """
-    delta = DELTA_FRAC * w.radius
-    return row_with_steps(oracle, w, delta, EPS_FRAC * delta)
+    v, delta = w.direction, DELTA_FRAC * w.radius
+    eps = EPS_FRAC * delta
+    pts = np.stack([w.x + delta * v, w.x - delta * v])
+    g, base, fx = gradients(oracle, pts, eps, extra=w.x[None])
+    s_v = (base[0] - 2 * fx[0] + base[1]) / delta
+    for _ in range(MAX_RETRIES):
+        jump = g[0] - g[1]
+        norm = float(np.linalg.norm(jump))
+        if not np.isfinite(norm) or norm == 0.0:
+            return None
+        if abs(jump @ v - s_v) <= CONSIST_TOL * norm:
+            break
+        eps = min(0.01 * eps, SAFETY * delta * abs(s_v) / np.max(np.abs(jump)))
+        if eps == 0.0:
+            return None
+        g = gradients(oracle, pts, eps)[0]
+    jump = g[0] - g[1]
+    norm = float(np.linalg.norm(jump))
+    if not np.isfinite(norm) or norm == 0.0:
+        return None
+    row = jump / norm
+    return row, float(-row @ w.x)
 
 
 def row_with_steps(
@@ -68,7 +102,7 @@ def _cluster(rows: np.ndarray, thr: float) -> list[list[int]]:
     clusters: list[list[int]] = []
     reps: list[np.ndarray] = []
     for i, r in enumerate(rows):
-        for c, rep in zip(clusters, reps):
+        for c, rep in zip(clusters, reps, strict=True):
             if abs(float(rep @ r)) > thr:
                 c.append(i)
                 break

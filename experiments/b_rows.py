@@ -10,7 +10,7 @@ import _path
 import numpy as np
 from bstyle import BLUE, GRAY, ORANGE, plt
 
-from common import Oracle, random_network, true_witness
+from common import Oracle, Witness, random_network, true_witness
 from layer1 import DELTA_FRAC, row_from_witness, row_with_steps
 
 N_NETS, SEED = 50, 2026
@@ -23,6 +23,43 @@ def row_err(p, j, r):
         return np.inf
     s = np.sign(r[0] @ a) or 1.0
     return float(np.max(np.abs(s * r[0] - a)))
+
+
+def search_like_witness(p, j, rng):
+    """Witness with a uniformly random search direction, as a line search
+    returns it (radius = distance to the next kink along v, capped at 1)."""
+    a = p.A1[j]
+    x0 = rng.normal(size=p.d0)
+    x = x0 - (a @ x0 + p.b1[j]) / (a @ a) * a
+    v = rng.normal(size=p.d0)
+    v /= np.linalg.norm(v)
+    V = p.A1 @ x + p.b1
+    r = min(abs(V[k]) / max(abs(p.A1[k] @ v), 1e-300) for k in range(p.d1) if k != j)
+    return Witness(x, v, min(r, 1.0))
+
+
+def line_check(n_nets=300):
+    """Random search directions: plain differencing vs. our consistency check."""
+    rng = np.random.default_rng(SEED + 1)
+    plain_bad = ours_bad = retried = total = queries = 0
+    for _ in range(n_nets):
+        p = random_network(rng)
+        oracle = Oracle(p)
+        for j in range(p.d1):
+            w = search_like_witness(p, j, rng)
+            delta = DELTA_FRAC * w.radius
+            plain_bad += row_err(p, j, row_with_steps(oracle, w, delta, 0.01 * delta)) > 1e-5
+            q0 = oracle.queries
+            ours_bad += row_err(p, j, row_from_witness(oracle, w)) > 1e-5
+            q = oracle.queries - q0
+            queries += q
+            retried += q > 23
+            total += 1
+    with open(f"{_path.ROOT}/results/b_rows_lines.csv", "w", newline="") as fh:
+        wr = csv.writer(fh)
+        wr.writerow(["witnesses", "plain_wrong", "checked_wrong", "retried", "mean_queries"])
+        wr.writerow([total, plain_bad, ours_bad, retried, f"{queries / total:.2f}"])
+    print(open(f"{_path.ROOT}/results/b_rows_lines.csv").read())
 
 
 def main():
@@ -47,7 +84,7 @@ def main():
     with open(f"{_path.ROOT}/results/b_rows.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["eps", "median", "p90", "max"])
-        for eps, e in zip(EPS, fixed):
+        for eps, e in zip(EPS, fixed, strict=True):
             wr.writerow([f"{eps:.3e}", *(f"{v:.3e}" for v in stats(e))])
         wr.writerow(["relative(0.001r)", *(f"{v:.3e}" for v in stats(ours))])
 
@@ -58,8 +95,9 @@ def main():
     m0, _, m2 = stats(ours)
     ax.axhline(m0, color=BLUE, lw=0.8, ls=":")
     ax.axhline(m2, color=ORANGE, lw=0.8, ls=":")
-    ax.text(EPS[-1], m2 * 2.0, "relative $\\varepsilon=10^{-3}r$ (max)", color=GRAY, fontsize=7, ha="right")
-    ax.text(EPS[0], m0 * 0.12, "relative $\\varepsilon=10^{-3}r$ (median)", color=GRAY, fontsize=7)
+    lab = "relative $\\varepsilon=10^{-3}r$"
+    ax.text(EPS[-1], m2 * 2.0, lab + " (max)", color=GRAY, fontsize=7, ha="right")
+    ax.text(EPS[0], m0 * 0.12, lab + " (median)", color=GRAY, fontsize=7)
     ax.set_xlabel("finite-difference step $\\varepsilon$")
     ax.set_ylabel("row error $\\|\\hat a_j-a_j\\|_\\infty$")
     ax.set_ylim(top=10)
@@ -71,3 +109,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    line_check()

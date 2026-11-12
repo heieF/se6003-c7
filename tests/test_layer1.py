@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from common import Oracle, random_network, true_witness
+from common import Oracle, Witness, random_network, true_witness
 from layer1 import merge_neurons, row_from_witness
 
 
@@ -16,11 +16,42 @@ def test_rows_from_true_witnesses():
             w = true_witness(p, j, rng)
             q0 = oracle.queries
             row, bias = row_from_witness(oracle, w)
-            assert oracle.queries - q0 == 2 * (p.d0 + 1)
+            assert oracle.queries - q0 == 2 * (p.d0 + 1) + 1
             a = p.A1[j] / np.linalg.norm(p.A1[j])
             cos = row @ a
             assert abs(cos) >= 1 - 1e-10
             assert abs(np.sign(cos) * bias - p.b1[j] / np.linalg.norm(p.A1[j])) < 1e-6
+
+
+def _search_like_witness(p, j, rng, max_angle=None):
+    """Witness as a line search returns it: random direction v (possibly
+    almost parallel to the hyperplane), radius = distance to the next kink."""
+    a = p.A1[j]
+    x0 = rng.normal(size=p.d0)
+    x = x0 - (a @ x0 + p.b1[j]) / (a @ a) * a
+    v = rng.normal(size=p.d0)
+    if max_angle is not None:  # force |cos(a, v)| <= max_angle
+        u = a / np.linalg.norm(a)
+        v -= (v @ u) * u
+        v = v / np.linalg.norm(v) + max_angle * rng.uniform(-1, 1) * u
+    v /= np.linalg.norm(v)
+    V = p.A1 @ x + p.b1
+    r = min(abs(V[k]) / max(abs(p.A1[k] @ v), 1e-300) for k in range(p.d1) if k != j)
+    return Witness(x, v, min(r, 1.0))
+
+
+def test_rows_from_nearly_parallel_lines():
+    """Search lines almost parallel to the hyperplane (|cos| <= 1e-3): the
+    consistency check must detect probes crossing the hyperplane."""
+    for seed in range(100):
+        rng = np.random.default_rng(seed)
+        p = random_network(rng)
+        oracle = Oracle(p)
+        for j in range(p.d1):
+            w = _search_like_witness(p, j, rng, max_angle=1e-3)
+            row, _ = row_from_witness(oracle, w)
+            a = p.A1[j] / np.linalg.norm(p.A1[j])
+            assert abs(row @ a) >= 1 - 1e-10
 
 
 def _true_cands(p, rng, reps):

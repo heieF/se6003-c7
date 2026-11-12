@@ -59,7 +59,9 @@ def main():
         wr = csv.writer(fh)
         wr.writerow(hdr)
         for r in rows:
-            wr.writerow([r[0], f"{r[1]:.0e}", r[2], f"{r[3]:.0f}", r[4], f"{r[5]:.0f}", f"{r[6]:.2e}"])
+            wr.writerow(
+                [r[0], f"{r[1]:.0e}", r[2], f"{r[3]:.0f}", r[4], f"{r[5]:.0f}", f"{r[6]:.2e}"]
+            )
     with open(f"{_path.ROOT}/results/b_signs_failures.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
         wr.writerow(["weights", "noise", "method", "cond_A1", "median_cond_all_nets"])
@@ -73,7 +75,8 @@ def main():
     lines = [
         "\\begin{tabular}{llrrrrr}",
         "\\toprule",
-        " & & \\multicolumn{2}{c}{pre-image~\\cite{DBLP:conf/crypto/CarliniJM20}} & \\multicolumn{3}{c}{least squares (ours)}\\\\",
+        " & & \\multicolumn{2}{c}{pre-image~\\cite{DBLP:conf/crypto/CarliniJM20}}"
+        " & \\multicolumn{3}{c}{least squares (ours)}\\\\",
         "\\cmidrule(lr){3-4}\\cmidrule(lr){5-7}",
         "weights & noise & succ. & queries & succ. & queries & med.\\ $\\max|f-\\hat f|$\\\\",
         "\\midrule",

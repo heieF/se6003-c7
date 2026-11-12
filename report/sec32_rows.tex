@@ -38,24 +38,42 @@ $\hat b=-\hat a\cdot x$.
 \paragraph{Algorithm.}
 Algorithm~\ref{alg:B-row} turns Proposition~\ref{prop:B-jump} into queries.
 Gradients are estimated by forward differences along the $\dzero$ coordinate
-axes, so each of the two points costs $\dzero+1$ queries and a witness costs
-$2(\dzero+1)=22$ queries, sent as one batch. Unlike~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20},
-we difference at points that are already on either side of the hyperplane,
-which keeps the relative signs of the entries of the row and removes the need
-for a separate column-sign step.
+axes, so each of the two points costs $\dzero+1$ queries, sent as one batch.
+Unlike~\cite[\S5.2]{DBLP:conf/crypto/CarliniJM20}, we difference at points
+that are already on either side of the hyperplane, which keeps the relative
+signs of the entries of the row and removes the need for a separate
+column-sign step.
+
+\paragraph{Consistency check (ours).}
+Proposition~\ref{prop:B-jump} needs every probe $p_s+\varepsilon e_i$ to stay
+on the same side of $\wit{j}$ as $p_s$. The distance from $p_s$ to the
+hyperplane along $e_i$ is $\delta|\Aone_j v|/|\Aone_{j,i}|$, which is tiny when
+the search line is almost parallel to the hyperplane, and $\varepsilon$
+cannot be chosen in advance because $\Aone_j$ is unknown. We therefore spend
+one more query on $f(x)$. Along the line, $f$ has a single kink inside
+$[-\delta,\delta]$, so
+$s_v=\bigl(f(p_{+})-2f(x)+f(p_{-})\bigr)/\delta$ is the exact slope jump along
+$v$ and must equal $J\cdot v$. If $|J\cdot v-s_v|>10^{-5}\|J\|$, a probe has
+crossed the hyperplane; we then estimate $|\hat a\cdot v|\approx|s_v|/\|J\|$
+and repeat the differencing with
+$\varepsilon\gets\min(10^{-2}\varepsilon,\;0.1\,\delta|s_v|/\|J\|_\infty)$.
+With uniformly random search directions (3000 witnesses of 300 networks),
+plain differencing returned a wrong row for 28 witnesses ($0.9\%$); with
+the check none were wrong, the 28 affected witnesses were retried, and the
+average cost was $23.2$ queries per witness (\texttt{results/b\_rows\_lines.csv}).
 
 \begin{algorithm}[t]
 \caption{\texttt{row\_from\_witness}: one row of $\Aone$ (up to sign) from a witness.}
 \label{alg:B-row}
 \KwIn{oracle $\oracle$, witness $(x,v,r)$ with no other critical point within $\pm r$ along $v$}
 \KwOut{unit row $\hat a$ and bias $\hat b$, or \texttt{None}}
-$\delta\gets 0.1\,r$;\quad $\varepsilon\gets 0.01\,\delta$\;
-\For{$s\in\{+1,-1\}$}{
-  $p_s\gets x+s\,\delta v$\;
-  $g_s\gets\bigl(\oracle(p_s+\varepsilon e_i)-\oracle(p_s)\bigr)_{i=1}^{\dzero}/\varepsilon$
-  \tcp*{$\dzero+1$ queries}
+$\delta\gets 0.1\,r$;\quad $\varepsilon\gets 0.01\,\delta$;\quad $p_{\pm}\gets x\pm\delta v$\;
+$s_v\gets\bigl(\oracle(p_+)-2\oracle(x)+\oracle(p_-)\bigr)/\delta$\tcp*{reuses $\oracle(p_\pm)$; 1 query}
+\Repeat{$|J\cdot v-s_v|\le10^{-5}\|J\|$ \textbf{or} 3 retries}{
+  $g_{\pm}\gets\bigl(\oracle(p_\pm+\varepsilon e_i)-\oracle(p_\pm)\bigr)_{i=1}^{\dzero}/\varepsilon$
+  \tcp*{$2(\dzero+1)$ queries}
+  $J\gets g_{+}-g_{-}$;\quad $\varepsilon\gets\min(10^{-2}\varepsilon,\,0.1\,\delta|s_v|/\|J\|_\infty)$\;
 }
-$J\gets g_{+1}-g_{-1}$\;
 \lIf{$J=0$}{\Return \texttt{None}\tcp*[f]{$\Atwo_j=0$: neuron invisible}}
 $\hat a\gets J/\|J\|$;\quad \Return $(\hat a,\,-\hat a\cdot x)$\;
 \end{algorithm}
@@ -78,7 +96,8 @@ hyperplane (median error $7.5\times10^{-12}$, maximum $1.3\times10^{-8}$). The
 remaining large errors come from neurons with a small radius or a small
 $|\Atwo_j|$, exactly as the estimate above predicts; Sect.~\ref{sec:B-refine}
 removes them. On the test criterion, all $1000$ neurons of $100$ networks
-satisfy $|\cos(\hat a,\Aone_j)|\ge1-10^{-10}$.
+satisfy $|\cos(\hat a,\Aone_j)|\ge1-10^{-10}$, also when every search line
+is forced to be within $10^{-3}$ of parallel to the hyperplane.
 
 \begin{figure}[t]
 \centering

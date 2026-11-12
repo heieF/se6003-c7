@@ -22,9 +22,7 @@ MAX_SHIFT = 1e-4  # reject a refined row that moved more than this
 N_TRIES = 40  # candidate starting points tried per neuron
 
 
-def _kink_on_segment(
-    oracle: Oracle, x: np.ndarray, u: np.ndarray, tau: float
-) -> np.ndarray | None:
+def _kink_on_segment(oracle: Oracle, x: np.ndarray, u: np.ndarray, tau: float) -> np.ndarray | None:
     """Locate the single kink of g(t) = f(x + t u) on [-tau, tau].
 
     Fits one line through the two left probes and one through the two right

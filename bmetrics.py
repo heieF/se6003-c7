@@ -25,9 +25,7 @@ def layer1_error(p: Params, A1_hat: np.ndarray, b1_hat: np.ndarray) -> float:
     E, eb = unit_rows(A1_hat, b1_hat)
     idx = match_rows(p, A1_hat)
     s = np.sign(np.sum(E * T[idx], axis=1))
-    return float(
-        max(np.max(np.abs(s[:, None] * E - T[idx])), np.max(np.abs(s * eb - tb[idx])))
-    )
+    return float(max(np.max(np.abs(s[:, None] * E - T[idx])), np.max(np.abs(s * eb - tb[idx]))))
 
 
 def scrambled_layer1(

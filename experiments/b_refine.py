@@ -36,15 +36,34 @@ def main():
                 after.append(layer1_error(p, Ar, br))
                 q.append(o.queries)
             b, a = np.log2(before), np.log2(after)
-            out.append([dist, f"{noise:.0e}", f"{np.median(b):.1f}", f"{np.max(b):.1f}",
-                        f"{np.median(a):.1f}", f"{np.max(a):.1f}",
-                        f"{np.mean(a <= -40):.2f}", f"{np.mean(q):.0f}"])
+            out.append(
+                [
+                    dist,
+                    f"{noise:.0e}",
+                    f"{np.median(b):.1f}",
+                    f"{np.max(b):.1f}",
+                    f"{np.median(a):.1f}",
+                    f"{np.max(a):.1f}",
+                    f"{np.mean(a <= -40):.2f}",
+                    f"{np.mean(q):.0f}",
+                ]
+            )
             if dist == "uniform01" and noise == 1e-8:
                 fig_data = (b, a)
     with open(f"{_path.ROOT}/results/b_refine.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
-        wr.writerow(["weights", "noise", "log2_before_med", "log2_before_max",
-                     "log2_after_med", "log2_after_max", "frac_after_le_2^-40", "queries"])
+        wr.writerow(
+            [
+                "weights",
+                "noise",
+                "log2_before_med",
+                "log2_before_max",
+                "log2_after_med",
+                "log2_after_max",
+                "frac_after_le_2^-40",
+                "queries",
+            ]
+        )
         wr.writerows(out)
 
     b, a = fig_data
