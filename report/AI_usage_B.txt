@@ -1,0 +1,118 @@
+SE6003 Project C7 - AI tool usage statement, Role B (first-layer recovery)
+=========================================================================
+
+Tool
+----
+Claude (Anthropic), model Claude Opus 5.5, used through the claude.ai app,
+12-13 November 2026. The assistant could run Python in a cloud workspace
+and operate a browser on my computer (GitHub, Overleaf).
+
+What the AI tool did
+--------------------
+1. Code. Wrote layer1.py (row_from_witness, merge_neurons,
+   row_from_witness_coord), signs.py (fix_signs, fix_signs_lstsq),
+   refine.py (refine_layer1) and the helper bmetrics.py, following the
+   interfaces in the group plan (Appendix B) and Carlini et al., CRYPTO 2020,
+   Sec. 4.2, 4.3.1, 5.1 and 5.2.
+2. Tests. Wrote tests/test_layer1.py, tests/test_signs.py,
+   tests/test_refine.py and tests/test_b_pipeline.py.
+3. Experiments. Wrote experiments/b_rows.py, b_signs.py, b_refine.py and
+   b_style.py, ran them, and produced results/b_*.csv, figures/B/*.pdf
+   and tables/B/*.tex.
+4. Method ideas proposed by the AI tool:
+   - the least-squares sign test based on ReLU(-z) = ReLU(z) - z (Sec. 3.3);
+   - the slope-jump consistency check that detects finite-difference probes
+     crossing the witness's own hyperplane (Sec. 3.2);
+   - locating the kink by intersecting two lines instead of bisection
+     (Sec. 3.5).
+5. Report. Drafted Sections 3.2, 3.3 and 3.5, Algorithm 2, Proposition 2
+   and its proof, Fig. B1, Fig. B2, Table B1, the row-method comparison
+   table, and refs_B.bib (entry typed in DBLP key format, not exported
+   from dblp.org).
+6. Debugging and review. Found and fixed a bug in row_from_witness (wrong
+   rows when the search line is nearly parallel to the hyperplane), and an
+   accidental reformatting of the frozen common.py (restored).
+7. Tooling. Committed and pushed the code to GitHub and uploaded the report
+   sections to Overleaf on my instruction.
+
+What I did
+----------
+- Chose role B and provided the project brief, task allocation and paper.
+- Made the decisions: where the code and report live, implementing the
+  Sec. 5.2 bonus method, and which issues to fix after reviewing.
+- Asked for a check against the task list, against the paper, and for
+  integration with roles A and C.
+- Set the code style and report writing style requirements and asked for
+  the code and text to be revised accordingly.
+- Reviewed the code, results and text, and I am able to explain every
+  function, experiment and paragraph of Role B's part.
+
+How the output was checked
+--------------------------
+- 11 unit tests (fixed seeds) pass in about 2 s; ruff lint shows no issues.
+- Every number in Sections 3.2, 3.3 and 3.5 was compared against the CSV
+  files produced by the experiment scripts.
+- End-to-end check of B's chain with a stand-in for A's search: 500
+  networks (U[0,1], U[-1,1], N(0,1); 10-10-1, 10-5-1, 20-10-1), no failures,
+  maximum function error about 2^-42.
+- common.py is byte-identical to the frozen version.
+- The report sections compile on Overleaf without warnings.
+
+Known limits
+------------
+- refs_B.bib should still be replaced by the entry exported from dblp.org.
+- Sections 3.2, 3.3 and 3.5 together exceed the planned 2.6 pages and may
+  need trimming during integration.
+
+
+------------------------------------------------------------------------
+中文版（供组内参考）
+------------------------------------------------------------------------
+
+工具
+----
+Claude（Anthropic），模型 Claude Opus 5.5，通过 claude.ai 使用，时间为
+2026 年 11 月 12-13 日。助手可以在云端工作区运行 Python，并在我的电脑上
+操作浏览器（GitHub、Overleaf）。
+
+AI 工具完成的内容
+----------------
+1. 代码：layer1.py（row_from_witness、merge_neurons、row_from_witness_coord）、
+   signs.py（fix_signs、fix_signs_lstsq）、refine.py（refine_layer1）和辅助文件
+   bmetrics.py，接口按分工文稿附录 B，方法依据 Carlini 等人 CRYPTO 2020 论文
+   第 4.2、4.3.1、5.1、5.2 节。
+2. 测试：tests/test_layer1.py、test_signs.py、test_refine.py、test_b_pipeline.py。
+3. 实验：experiments/b_rows.py、b_signs.py、b_refine.py、b_style.py，并运行
+   生成 results/b_*.csv、figures/B/*.pdf、tables/B/*.tex。
+4. 由 AI 工具提出的方法：
+   - 基于 ReLU(-z) = ReLU(z) - z 的最小二乘符号判定（3.3 节）；
+   - 用斜率跳变检测差分探针是否越过 witness 所在超平面的一致性检查（3.2 节）；
+   - 用两条直线求交点代替二分来定位拐点（3.5 节）。
+5. 报告：起草 3.2、3.3、3.5 节，算法 2、命题 2 及证明，图 B1、图 B2、表 B1、
+   行恢复方法对比表，以及 refs_B.bib（条目按 DBLP 键名格式手写，未从
+   dblp.org 导出）。
+6. 调试与检查：发现并修复 row_from_witness 的 bug（搜索直线几乎平行于超平面时
+   行出错），以及误改冻结文件 common.py 的排版（已恢复）。
+7. 工具操作：按我的指示把代码推送到 GitHub，把报告各节上传到 Overleaf。
+
+我本人完成的内容
+----------------
+- 选择角色 B，提供项目说明、分工文稿和论文。
+- 做出决定：代码和报告放在哪里、是否实现 5.2 节加分方法、审阅后修哪些问题。
+- 要求对照任务清单、对照论文、以及就与 A、C 的对接进行检查。
+- 规定代码风格和报告写作风格，并要求按此修改代码和文字。
+- 审阅代码、结果和文字，能讲清 B 部分的每个函数、每个实验和每一段内容。
+
+如何核对输出
+------------
+- 11 个单元测试（固定种子）约 2 秒全部通过；ruff 代码检查无问题。
+- 3.2、3.3、3.5 节中的每个数字都与实验脚本生成的 CSV 逐一核对。
+- 用模拟的 A 搜索做 B 部分端到端检查：500 个网络（U[0,1]、U[-1,1]、N(0,1)；
+  10-10-1、10-5-1、20-10-1），全部成功，最大函数误差约 2^-42。
+- common.py 与冻结版本逐字节一致。
+- 报告各节在 Overleaf 上编译无警告。
+
+已知不足
+--------
+- refs_B.bib 仍需换成从 dblp.org 导出的条目。
+- 3.2、3.3、3.5 三节合计超过计划的 2.6 页，统稿时可能需要压缩。
